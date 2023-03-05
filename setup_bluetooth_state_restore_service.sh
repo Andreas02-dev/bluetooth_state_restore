@@ -19,9 +19,15 @@ install_bluetooth_state_saver()
   cat << EOF | sudo tee /usr/local/sbin/bluetooth_state_startup.sh
 #!/bin/sh
 
+set -x
+
+echo "Checking whether bluetooth should be turned off."
 if test -f "/usr/local/share/.bluetooth_off"
 then
+    echo "Turning bluetooth off."
     bluetooth off
+else
+    echo "Keeping bluetooth turned on."
 fi
 EOF
 
@@ -30,12 +36,19 @@ sudo chmod +x /usr/local/sbin/bluetooth_state_startup.sh
 cat << EOF | sudo tee /usr/local/sbin/bluetooth_state_shutdown.sh
 #!/bin/sh
 
+set -x
+
+echo "Checking whether bluetooth should be turned off on next boot."
+
 if bluetooth | grep -q 'bluetooth = off (software)'
 then
+  echo "Creating file to ensure bluetooth is turned off on next boot."
   touch /usr/local/share/.bluetooth_off
 else
+  echo "Checking whether to remove the file to ensure bluetooth isn't turned off on next boot."
   if test -f "/usr/local/share/.bluetooth_off"
   then
+    echo "Removing file to ensure bluetooth isn't turned off on next boot."
     rm /usr/local/share/.bluetooth_off
    fi
 fi
@@ -57,7 +70,7 @@ ExecStop=/usr/local/sbin/bluetooth_state_shutdown.sh
 RemainAfterExit=yes
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=bluetooth.target
 EOF
 
 sudo systemctl daemon-reload
